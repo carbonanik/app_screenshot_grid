@@ -1,0 +1,1 @@
+enum DeviceFrameType { iphone, android }
