@@ -12,8 +12,19 @@ import 'package:screenshot/screenshot.dart';
 
 class BannerWidget extends ConsumerWidget {
   final ScreenshotController screenshotController;
+  final bool swapMode;
+  final int? firstSelectedIndex;
+  final void Function(int index)? onImageTap;
+  final bool deleteMode;
 
-  const BannerWidget({required this.screenshotController, super.key});
+  const BannerWidget({
+    required this.screenshotController,
+    this.swapMode = false,
+    this.firstSelectedIndex,
+    this.onImageTap,
+    this.deleteMode = false,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,6 +59,10 @@ class BannerWidget extends ConsumerWidget {
                 titleHeight: bannerState.titleHeight,
                 columns: bannerState.columns,
                 rows: bannerState.rows,
+                swapMode: swapMode,
+                firstSelectedIndex: firstSelectedIndex,
+                onImageTap: onImageTap,
+                deleteMode: deleteMode,
               ),
             ),
           ),
@@ -64,6 +79,10 @@ class _BannerContainer extends ConsumerWidget {
   final double titleHeight;
   final int columns;
   final int rows;
+  final bool swapMode;
+  final int? firstSelectedIndex;
+  final void Function(int index)? onImageTap;
+  final bool deleteMode;
 
   const _BannerContainer({
     required this.size,
@@ -72,6 +91,10 @@ class _BannerContainer extends ConsumerWidget {
     required this.titleHeight,
     required this.columns,
     required this.rows,
+    this.swapMode = false,
+    this.firstSelectedIndex,
+    this.onImageTap,
+    this.deleteMode = false,
   });
 
   @override
@@ -89,7 +112,15 @@ class _BannerContainer extends ConsumerWidget {
         children: [
           _BannerTitle(height: titleHeight),
           Expanded(
-            child: _BannerGrid(columns: columns, rows: rows, gap: gap),
+            child: _BannerGrid(
+              columns: columns,
+              rows: rows,
+              gap: gap,
+              swapMode: swapMode,
+              firstSelectedIndex: firstSelectedIndex,
+              onImageTap: onImageTap,
+              deleteMode: deleteMode,
+            ),
           ),
         ],
       ),
@@ -131,11 +162,19 @@ class _BannerGrid extends ConsumerWidget {
   final int columns;
   final int rows;
   final double gap;
+  final bool swapMode;
+  final int? firstSelectedIndex;
+  final void Function(int index)? onImageTap;
+  final bool deleteMode;
 
   const _BannerGrid({
     required this.columns,
     required this.rows,
     required this.gap,
+    this.swapMode = false,
+    this.firstSelectedIndex,
+    this.onImageTap,
+    this.deleteMode = false,
   });
 
   @override
@@ -155,12 +194,20 @@ class _BannerGrid extends ConsumerWidget {
                 columnIndex,
                 columns,
               );
+              final flatIndex = rowIndex * columns + columnIndex;
 
               return Expanded(
                 child: _ImageCell(
                   image: image,
                   showBorder: showBorders,
                   gap: gap,
+                  swapMode: swapMode,
+                  selected: swapMode && firstSelectedIndex == flatIndex,
+                  onTap: (swapMode && image != null)
+                      ? () => onImageTap?.call(flatIndex)
+                      : (deleteMode && image != null)
+                      ? () => onImageTap?.call(flatIndex)
+                      : null,
                 ),
               );
             }),
@@ -175,11 +222,17 @@ class _ImageCell extends ConsumerWidget {
   final Uint8List? image;
   final bool showBorder;
   final double gap;
+  final bool swapMode;
+  final bool selected;
+  final VoidCallback? onTap;
 
   const _ImageCell({
     required this.image,
     required this.showBorder,
     required this.gap,
+    this.swapMode = false,
+    this.selected = false,
+    this.onTap,
   });
 
   @override
@@ -202,13 +255,25 @@ class _ImageCell extends ConsumerWidget {
       }
     }
 
-    return Container(
+    Widget cell = Container(
       margin: EdgeInsets.all(gap / 2),
-      decoration: showBorder
-          ? BoxDecoration(border: Border.all(color: Colors.black))
-          : null,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: selected
+              ? Colors.blue
+              : (showBorder ? Colors.black : Colors.transparent),
+          width: selected ? 3 : 1,
+        ),
+        boxShadow: selected
+            ? [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 8)]
+            : null,
+      ),
       child: Center(child: framedImage),
     );
+    if ((swapMode || onTap != null) && image != null) {
+      cell = GestureDetector(onTap: onTap, child: cell);
+    }
+    return cell;
   }
 }
 

@@ -16,12 +16,22 @@ class BannerControls extends ConsumerWidget {
   final VoidCallback onPickImages;
   final VoidCallback? onDownload;
   final VoidCallback? onHeaderTap;
+  final VoidCallback? onClear;
+  final bool swapMode;
+  final bool deleteMode;
+  final ValueChanged<bool?> onSwapModeChanged;
+  final ValueChanged<bool?> onDeleteModeChanged;
 
   const BannerControls({
     super.key,
     required this.onPickImages,
     this.onHeaderTap,
     this.onDownload,
+    this.onClear,
+    required this.swapMode,
+    required this.deleteMode,
+    required this.onSwapModeChanged,
+    required this.onDeleteModeChanged,
   });
 
   @override
@@ -53,6 +63,19 @@ class BannerControls extends ConsumerWidget {
               OutputSizeControls(accent: accent),
               const SizedBox(height: AppConstants.mediumSpacing),
               GapControl(accent: accent),
+              Row(
+                children: [
+                  Checkbox(value: swapMode, onChanged: onSwapModeChanged),
+                  const Text('Change Position'),
+                ],
+              ),
+              // const SizedBox(width: 16),
+              Row(
+                children: [
+                  Checkbox(value: deleteMode, onChanged: onDeleteModeChanged),
+                  const Text('Delete Item'),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: AppConstants.largeSpacing),
@@ -68,6 +91,7 @@ class BannerControls extends ConsumerWidget {
                 accent: accent,
                 onPickImages: onPickImages,
                 onDownload: onDownload,
+                onClear: onClear,
               ),
             ],
           ),
