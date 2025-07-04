@@ -17,60 +17,70 @@ class ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      alignment: WrapAlignment.center,
+    return Column(
       children: [
-        ElevatedButton.icon(
+        _ActionButton(
           onPressed: onPickImages,
-          icon: const Icon(Icons.upload_file, color: Colors.white, size: 18),
-          label: const Text("Upload"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: accent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                AppConstants.largeBorderRadius,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600),
-            elevation: 0,
-          ),
+          icon: Icons.upload_file,
+          label: "Upload Images",
+          backgroundColor: accent,
         ),
-        ElevatedButton.icon(
-          onPressed: onClear,
-          icon: const Icon(Icons.clear, color: Colors.white, size: 18),
-          label: const Text("Clear"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                AppConstants.largeBorderRadius,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600),
-            elevation: 0,
-          ),
-        ),
-        ElevatedButton.icon(
+        const SizedBox(height: 12),
+        _ActionButton(
           onPressed: onDownload,
-          icon: const Icon(Icons.download, color: Colors.white, size: 18),
-          label: const Text("Download"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.grey.shade800,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                AppConstants.largeBorderRadius,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600),
-            elevation: 0,
-          ),
+          icon: Icons.file_download,
+          label: "Export Banner",
+          backgroundColor: Colors.grey.shade800,
+        ),
+        const SizedBox(height: 12),
+        _ActionButton(
+          onPressed: onClear,
+          icon: Icons.clear_all,
+          label: "Clear All",
+          backgroundColor: Colors.red.shade600,
         ),
       ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+  final Color backgroundColor;
+
+  const _ActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, color: Colors.white, size: 20),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppConstants.largeBorderRadius),
+          ),
+          elevation: 0,
+        ),
+      ),
     );
   }
 }

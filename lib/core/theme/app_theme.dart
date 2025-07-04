@@ -41,21 +41,21 @@ class AppTheme {
   static BoxDecoration get sidePanelDecoration => BoxDecoration(
     color: Colors.white.withValues(alpha: 0.95),
     borderRadius: BorderRadius.circular(AppConstants.extraLargeBorderRadius),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.08),
-        blurRadius: 20,
-        offset: const Offset(0, 4),
-        spreadRadius: 0,
-      ),
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.04),
-        blurRadius: 8,
-        offset: const Offset(0, 2),
-        spreadRadius: 0,
-      ),
-    ],
-    border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+    // boxShadow: [
+    //   BoxShadow(
+    //     color: Colors.black.withValues(alpha: 0.08),
+    //     blurRadius: 20,
+    //     offset: const Offset(0, 4),
+    //     spreadRadius: 0,
+    //   ),
+    //   BoxShadow(
+    //     color: Colors.black.withValues(alpha: 0.04),
+    //     blurRadius: 8,
+    //     offset: const Offset(0, 2),
+    //     spreadRadius: 0,
+    //   ),
+    // ],
+    border: Border.all(color: Colors.black12, width: 1),
   );
 
   static BoxDecoration get debugBorderDecoration =>

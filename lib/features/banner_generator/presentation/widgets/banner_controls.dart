@@ -12,7 +12,7 @@ import 'style_controls.dart';
 import 'device_frame_picker.dart';
 import 'action_buttons.dart';
 
-class BannerControls extends ConsumerWidget {
+class BannerControls extends ConsumerStatefulWidget {
   final VoidCallback onPickImages;
   final VoidCallback? onDownload;
   final VoidCallback? onHeaderTap;
@@ -35,67 +35,123 @@ class BannerControls extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final accent = Colors.blue.shade400;
+  ConsumerState<BannerControls> createState() => _BannerControlsState();
+}
+
+class _BannerControlsState extends ConsumerState<BannerControls> {
+  String? _expandedSection;
+
+  void _toggleSection(String sectionTitle) {
+    setState(() {
+      if (_expandedSection == sectionTitle) {
+        _expandedSection = null; // Collapse if already expanded
+      } else {
+        _expandedSection = sectionTitle; // Expand this section, collapse others
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Colors.grey.shade900;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ControlsHeader(accent: accent, onTap: onHeaderTap),
-          const SizedBox(height: AppConstants.largeSpacing),
+          const SizedBox(height: AppConstants.smallSpacing),
+          ControlsHeader(accent: accent, onTap: widget.onHeaderTap),
+          const SizedBox(height: AppConstants.smallSpacing),
           SectionCard(
             title: "Title",
             accent: accent,
+            icon: Icons.title,
+            initiallyExpanded: _expandedSection == "Title",
+            onToggle: () => _toggleSection("Title"),
             children: [
               TitleInput(accent: accent),
               const SizedBox(height: AppConstants.mediumSpacing),
               TitleStyleControls(accent: accent),
             ],
           ),
-          const SizedBox(height: AppConstants.largeSpacing),
+          const SizedBox(height: AppConstants.smallSpacing),
           SectionCard(
             title: "Grid",
             accent: accent,
+            icon: Icons.grid_on,
+            initiallyExpanded: _expandedSection == "Grid",
+            onToggle: () => _toggleSection("Grid"),
             children: [
               GridControls(accent: accent),
               const SizedBox(height: AppConstants.mediumSpacing),
               OutputSizeControls(accent: accent),
               const SizedBox(height: AppConstants.mediumSpacing),
               GapControl(accent: accent),
-              Row(
+              const SizedBox(height: AppConstants.mediumSpacing),
+
+              Column(
                 children: [
-                  Checkbox(value: swapMode, onChanged: onSwapModeChanged),
-                  const Text('Change Position'),
-                ],
-              ),
-              // const SizedBox(width: 16),
-              Row(
-                children: [
-                  Checkbox(value: deleteMode, onChanged: onDeleteModeChanged),
-                  const Text('Delete Item'),
+                  Row(
+                    children: [
+                      Switch(
+                        value: widget.swapMode,
+                        onChanged: widget.onSwapModeChanged,
+                        activeColor: accent,
+                      ),
+                      const Text(
+                        'Change Position',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Switch(
+                        value: widget.deleteMode,
+                        onChanged: widget.onDeleteModeChanged,
+                        activeColor: Colors.red,
+                      ),
+                      const Text(
+                        'Delete Item',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: AppConstants.largeSpacing),
+          const SizedBox(height: AppConstants.smallSpacing),
           SectionCard(
             title: "Style",
             accent: accent,
+            icon: Icons.palette,
+            initiallyExpanded: _expandedSection == "Style",
+            onToggle: () => _toggleSection("Style"),
             children: [
               StyleControls(accent: accent),
               const SizedBox(height: 10),
               DeviceFramePicker(accent: accent),
-              const SizedBox(height: AppConstants.largeSpacing),
+            ],
+          ),
+          const SizedBox(height: AppConstants.smallSpacing),
+          SectionCard(
+            title: "Actions",
+            accent: accent,
+            icon: Icons.play_arrow,
+            initiallyExpanded: _expandedSection == "Actions",
+            onToggle: () => _toggleSection("Actions"),
+            children: [
               ActionButtons(
                 accent: accent,
-                onPickImages: onPickImages,
-                onDownload: onDownload,
-                onClear: onClear,
+                onPickImages: widget.onPickImages,
+                onDownload: widget.onDownload,
+                onClear: widget.onClear,
               ),
             ],
           ),
-          const SizedBox(height: AppConstants.extraLargeSpacing),
+          const SizedBox(height: AppConstants.mediumSpacing),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:app_screenshot_grid/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 
@@ -6,12 +7,16 @@ class SectionCard extends StatefulWidget {
   final Color accent;
   final List<Widget> children;
   final bool initiallyExpanded;
+  final IconData? icon;
+  final VoidCallback? onToggle;
 
   const SectionCard({
     required this.title,
     required this.accent,
     required this.children,
     this.initiallyExpanded = true,
+    this.icon,
+    this.onToggle,
     super.key,
   });
 
@@ -30,17 +35,25 @@ class _SectionCardState extends State<SectionCard>
   }
 
   @override
+  void didUpdateWidget(SectionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initiallyExpanded != widget.initiallyExpanded) {
+      _expanded = widget.initiallyExpanded;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          AppConstants.extraLargeBorderRadius,
-        ),
-      ),
+    return Container(
+      // elevation: 0,
+      // margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 0),
+      // color: Colors.white,
+      // shape: RoundedRectangleBorder(
+      // borderRadius: BorderRadius.circular(AppConstants.mediumBorderRadius),
+      // ),
+      decoration: AppTheme.sidePanelDecoration,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -48,16 +61,26 @@ class _SectionCardState extends State<SectionCard>
               borderRadius: BorderRadius.circular(
                 AppConstants.largeBorderRadius,
               ),
-              onTap: () => setState(() => _expanded = !_expanded),
+              onTap: () {
+                if (widget.onToggle != null) {
+                  widget.onToggle!();
+                } else {
+                  setState(() => _expanded = !_expanded);
+                }
+              },
               child: Row(
                 children: [
+                  if (widget.icon != null) ...[
+                    Icon(widget.icon, color: widget.accent, size: 22),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Text(
                       widget.title,
                       style: TextStyle(
                         color: widget.accent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -73,7 +96,7 @@ class _SectionCardState extends State<SectionCard>
             AnimatedCrossFade(
               firstChild: const SizedBox.shrink(),
               secondChild: Padding(
-                padding: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.only(top: 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: widget.children,

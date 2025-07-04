@@ -2,8 +2,9 @@ import 'dart:typed_data';
 import '../../../../shared/models/background_type.dart';
 import '../../../../shared/widgets/device_frame_widgets.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../data/providers/banner_config_provider.dart';
 import '../../data/providers/device_frame.dart';
-import '../../data/providers/providers.dart';
+import '../../domain/entities/banner_config.dart';
 import '../../domain/services/banner_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +29,11 @@ class BannerWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bannerState = _BannerState.fromRef(ref);
+    final config = ref.watch(bannerConfigProvider);
+    if (config == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final bannerState = _BannerState.fromConfig(config);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -45,20 +50,17 @@ class BannerWidget extends ConsumerWidget {
           scaleRatio: scaleRatio,
         );
 
+        final showBorders = config.showBorders;
         return Container(
           width: constraints.maxWidth,
           height: constraints.maxHeight,
-          decoration: AppTheme.debugBorderDecoration,
+          decoration: showBorders ? AppTheme.debugBorderDecoration : null,
           child: Center(
             child: Screenshot(
               controller: screenshotController,
               child: _BannerContainer(
+                config: config,
                 size: bannerSize,
-                backgroundType: bannerState.backgroundType,
-                gap: bannerState.gap,
-                titleHeight: bannerState.titleHeight,
-                columns: bannerState.columns,
-                rows: bannerState.rows,
                 swapMode: swapMode,
                 firstSelectedIndex: firstSelectedIndex,
                 onImageTap: onImageTap,
@@ -72,25 +74,17 @@ class BannerWidget extends ConsumerWidget {
   }
 }
 
-class _BannerContainer extends ConsumerWidget {
+class _BannerContainer extends StatelessWidget {
+  final BannerConfig config;
   final Size size;
-  final BackgroundType backgroundType;
-  final double gap;
-  final double titleHeight;
-  final int columns;
-  final int rows;
   final bool swapMode;
   final int? firstSelectedIndex;
   final void Function(int index)? onImageTap;
   final bool deleteMode;
 
   const _BannerContainer({
+    required this.config,
     required this.size,
-    required this.backgroundType,
-    required this.gap,
-    required this.titleHeight,
-    required this.columns,
-    required this.rows,
     this.swapMode = false,
     this.firstSelectedIndex,
     this.onImageTap,
@@ -98,28 +92,37 @@ class _BannerContainer extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final decoration = BannerService.createBannerDecoration(backgroundType);
-
+  Widget build(BuildContext context) {
+    final decoration = BannerService.createBannerDecoration(config.bgType);
+    final showBorders = config.showBorders;
     return Container(
       width: size.width,
       height: size.height,
       decoration: decoration.copyWith(
-        border: AppTheme.outputBorderDecoration.border,
+        border: showBorders ? AppTheme.outputBorderDecoration.border : null,
       ),
-      padding: EdgeInsets.all(gap / 2),
+      padding: EdgeInsets.all(config.gap / 2),
       child: Column(
         children: [
-          _BannerTitle(height: titleHeight),
+          _BannerTitle(
+            title: config.title,
+            fontSize: config.titleFontSize,
+            color: Color(config.titleColorValue),
+            fontFamily: config.titleFontFamily,
+            height: config.titleHeight,
+          ),
           Expanded(
             child: _BannerGrid(
-              columns: columns,
-              rows: rows,
-              gap: gap,
+              images: config.images,
+              columns: config.gridColumns,
+              rows: config.gridRows,
+              gap: config.gap,
               swapMode: swapMode,
               firstSelectedIndex: firstSelectedIndex,
               onImageTap: onImageTap,
               deleteMode: deleteMode,
+              deviceFrame: config.deviceFrame,
+              showBorders: config.showBorders,
             ),
           ),
         ],
@@ -128,18 +131,23 @@ class _BannerContainer extends ConsumerWidget {
   }
 }
 
-class _BannerTitle extends ConsumerWidget {
+class _BannerTitle extends StatelessWidget {
+  final String title;
+  final double fontSize;
+  final Color color;
+  final String fontFamily;
   final double height;
 
-  const _BannerTitle({required this.height});
+  const _BannerTitle({
+    required this.title,
+    required this.fontSize,
+    required this.color,
+    required this.fontFamily,
+    required this.height,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final title = ref.watch(titleProvider);
-    final fontSize = ref.watch(titleFontSizeProvider);
-    final color = ref.watch(titleColorProvider);
-    final fontFamily = ref.watch(titleFontFamilyProvider);
-
+  Widget build(BuildContext context) {
     return SizedBox(
       height: height,
       child: Center(
@@ -158,7 +166,8 @@ class _BannerTitle extends ConsumerWidget {
   }
 }
 
-class _BannerGrid extends ConsumerWidget {
+class _BannerGrid extends StatelessWidget {
+  final List<Uint8List> images;
   final int columns;
   final int rows;
   final double gap;
@@ -166,8 +175,11 @@ class _BannerGrid extends ConsumerWidget {
   final int? firstSelectedIndex;
   final void Function(int index)? onImageTap;
   final bool deleteMode;
+  final DeviceFrameType deviceFrame;
+  final bool showBorders;
 
   const _BannerGrid({
+    required this.images,
     required this.columns,
     required this.rows,
     required this.gap,
@@ -175,13 +187,12 @@ class _BannerGrid extends ConsumerWidget {
     this.firstSelectedIndex,
     this.onImageTap,
     this.deleteMode = false,
+    required this.deviceFrame,
+    required this.showBorders,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final images = ref.watch(imagesProvider);
-    final showBorders = ref.watch(showBordersProvider);
-
+  Widget build(BuildContext context) {
     return Column(
       children: List.generate(
         rows,
@@ -208,6 +219,7 @@ class _BannerGrid extends ConsumerWidget {
                       : (deleteMode && image != null)
                       ? () => onImageTap?.call(flatIndex)
                       : null,
+                  deviceFrame: deviceFrame,
                 ),
               );
             }),
@@ -218,13 +230,14 @@ class _BannerGrid extends ConsumerWidget {
   }
 }
 
-class _ImageCell extends ConsumerWidget {
+class _ImageCell extends StatelessWidget {
   final Uint8List? image;
   final bool showBorder;
   final double gap;
   final bool swapMode;
   final bool selected;
   final VoidCallback? onTap;
+  final DeviceFrameType deviceFrame;
 
   const _ImageCell({
     required this.image,
@@ -233,15 +246,14 @@ class _ImageCell extends ConsumerWidget {
     this.swapMode = false,
     this.selected = false,
     this.onTap,
+    required this.deviceFrame,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final frameType = ref.watch(deviceFrameProvider);
-
+  Widget build(BuildContext context) {
     Widget framedImage = const SizedBox.shrink();
     if (image != null) {
-      switch (frameType) {
+      switch (deviceFrame) {
         case DeviceFrameType.iphone:
           framedImage = IPhoneFrame(
             child: Image.memory(image!, fit: BoxFit.cover),
@@ -296,15 +308,15 @@ class _BannerState {
     required this.titleHeight,
   });
 
-  factory _BannerState.fromRef(WidgetRef ref) {
+  factory _BannerState.fromConfig(BannerConfig config) {
     return _BannerState(
-      columns: ref.watch(gridColumnsProvider),
-      rows: ref.watch(gridRowsProvider),
-      outputWidth: ref.watch(outputWidthProvider),
-      outputHeight: ref.watch(outputHeightProvider),
-      backgroundType: ref.watch(bgTypeProvider),
-      gap: ref.watch(gapProvider),
-      titleHeight: ref.watch(titleHeightProvider),
+      columns: config.gridColumns,
+      rows: config.gridRows,
+      outputWidth: config.outputWidth,
+      outputHeight: config.outputHeight,
+      backgroundType: config.bgType,
+      gap: config.gap,
+      titleHeight: config.titleHeight,
     );
   }
 }

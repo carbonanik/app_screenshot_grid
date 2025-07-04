@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/providers/providers.dart';
+import '../../data/providers/banner_config_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 
 class GridControls extends ConsumerWidget {
@@ -10,6 +10,10 @@ class GridControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final config = ref.watch(bannerConfigProvider);
+    final notifier = ref.read(bannerConfigProvider.notifier);
+    final columns = config?.gridColumns ?? AppConstants.defaultGridColumns;
+    final rows = config?.gridRows ?? AppConstants.defaultGridRows;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -21,7 +25,7 @@ class GridControls extends ConsumerWidget {
             ),
             const SizedBox(width: AppConstants.smallSpacing),
             DropdownButton<int>(
-              value: ref.watch(gridColumnsProvider),
+              value: columns,
               underline: const SizedBox(),
               borderRadius: BorderRadius.circular(
                 AppConstants.mediumBorderRadius,
@@ -29,14 +33,18 @@ class GridControls extends ConsumerWidget {
               items: AppConstants.availableGridSizes.map((size) {
                 return DropdownMenuItem<int>(value: size, child: Text('$size'));
               }).toList(),
-              onChanged: (val) =>
-                  ref.read(gridColumnsProvider.notifier).state = val!,
+              onChanged: (val) {
+                if (config != null && val != null) {
+                  notifier.update(config.copyWith(gridColumns: val));
+                  notifier.save();
+                }
+              },
             ),
             const SizedBox(width: AppConstants.largeSpacing),
             const Text("Rows:", style: TextStyle(fontWeight: FontWeight.w400)),
             const SizedBox(width: AppConstants.smallSpacing),
             DropdownButton<int>(
-              value: ref.watch(gridRowsProvider),
+              value: rows,
               underline: const SizedBox(),
               borderRadius: BorderRadius.circular(
                 AppConstants.mediumBorderRadius,
@@ -44,8 +52,12 @@ class GridControls extends ConsumerWidget {
               items: AppConstants.availableGridSizes.map((size) {
                 return DropdownMenuItem<int>(value: size, child: Text('$size'));
               }).toList(),
-              onChanged: (val) =>
-                  ref.read(gridRowsProvider.notifier).state = val!,
+              onChanged: (val) {
+                if (config != null && val != null) {
+                  notifier.update(config.copyWith(gridRows: val));
+                  notifier.save();
+                }
+              },
             ),
           ],
         ),

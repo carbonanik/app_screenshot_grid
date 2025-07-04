@@ -1,15 +1,14 @@
 import '../widgets/banner_controls.dart';
 import '../widgets/banner_widget.dart';
-import '../../data/providers/providers.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/error_handler.dart';
+import '../../data/providers/banner_config_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:screenshot/screenshot.dart';
 import 'dart:html' as html;
 import 'dart:ui';
+import 'dart:math';
+import 'dart:async';
 
 class BannerGeneratorPage extends ConsumerStatefulWidget {
   const BannerGeneratorPage({super.key});
@@ -26,65 +25,92 @@ class _BannerGeneratorPageState extends ConsumerState<BannerGeneratorPage> {
   int? _firstSelectedIndex;
   bool _deleteMode = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Load the banner config on init
+    Future.microtask(() => ref.read(bannerConfigProvider.notifier).load());
+  }
+
   Future<void> _pickImages() async {
+    final notifier = ref.read(bannerConfigProvider.notifier);
+    final config = ref.read(bannerConfigProvider);
+    if (config == null) return;
     try {
       final pickedImages = await ImagePickerWeb.getMultiImagesAsBytes();
       if (pickedImages != null) {
-        final currentImages = ref.read(imagesProvider.notifier).state;
-        final combinedImages = (currentImages + pickedImages)
-            .take(25)
-            .toList(); // Max 5x5 grid
-        ref.read(imagesProvider.notifier).state = combinedImages;
-
+        final currentImages = config.images;
+        final combinedImages = (currentImages + pickedImages).take(25).toList();
+        notifier.update(config.copyWith(images: combinedImages));
+        notifier.save();
         if ((currentImages.length + pickedImages.length) > 25 && mounted) {
-          ErrorHandler.showSuccessSnackBar(
-            context,
-            'Only first 25 images will be used (max 5x5 grid)',
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Only first 25 images will be used (max 5x5 grid)'),
+            ),
           );
         }
       }
     } catch (error) {
       if (mounted) {
-        ErrorHandler.showErrorSnackBar(
-          context,
-          'Failed to pick images: ${ErrorHandler.getErrorMessage(error)}',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick images: $error')),
         );
       }
     }
   }
 
   void _clearImages() {
-    ref.read(imagesProvider.notifier).state = [];
+    final notifier = ref.read(bannerConfigProvider.notifier);
+    final config = ref.read(bannerConfigProvider);
+    if (config == null) return;
+    notifier.update(config.copyWith(images: []));
+    notifier.save();
   }
 
   Future<void> _downloadBanner() async {
+    final config = ref.read(bannerConfigProvider);
+    if (config == null) return;
     try {
-      final image = await _screenshotController.capture();
+      final outputWidth = config.outputWidth;
+      final outputHeight = config.outputHeight;
+      final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+      final scaleRatio = outputWidth / screenWidth > outputHeight / screenHeight
+          ? outputWidth / screenWidth
+          : outputHeight / screenHeight;
+      final bannerSize = Size(
+        outputWidth / scaleRatio,
+        outputHeight / scaleRatio,
+      );
+      final pixelRatio = max(
+        outputWidth / bannerSize.width,
+        outputHeight / bannerSize.height,
+      );
+      final image = await _screenshotController.capture(pixelRatio: pixelRatio);
       if (image == null) {
         if (mounted) {
-          ErrorHandler.showErrorSnackBar(context, 'Failed to capture banner');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to capture banner')),
+          );
         }
         return;
       }
-
       final blob = html.Blob([image]);
       final url = html.Url.createObjectUrlFromBlob(blob);
       html.AnchorElement(href: url)
         ..setAttribute("download", "banner.png")
         ..click();
       html.Url.revokeObjectUrl(url);
-
       if (mounted) {
-        ErrorHandler.showSuccessSnackBar(
-          context,
-          'Banner downloaded successfully!',
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Banner downloaded successfully!')),
         );
       }
     } catch (error) {
       if (mounted) {
-        ErrorHandler.showErrorSnackBar(
-          context,
-          'Failed to download banner: ${ErrorHandler.getErrorMessage(error)}',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to download banner: $error')),
         );
       }
     }
@@ -115,17 +141,20 @@ class _BannerGeneratorPageState extends ConsumerState<BannerGeneratorPage> {
   }
 
   void _onImageTap(int index) async {
+    final notifier = ref.read(bannerConfigProvider.notifier);
+    final config = ref.read(bannerConfigProvider);
+    if (config == null) return;
     if (_swapMode) {
       setState(() {
         if (_firstSelectedIndex == null) {
           _firstSelectedIndex = index;
         } else if (_firstSelectedIndex != index) {
-          // Swap images
-          final images = List.of(ref.read(imagesProvider.notifier).state);
+          final images = List.of(config.images);
           final temp = images[_firstSelectedIndex!];
           images[_firstSelectedIndex!] = images[index];
           images[index] = temp;
-          ref.read(imagesProvider.notifier).state = images;
+          notifier.update(config.copyWith(images: images));
+          notifier.save();
           _firstSelectedIndex = null;
         }
       });
@@ -148,17 +177,21 @@ class _BannerGeneratorPageState extends ConsumerState<BannerGeneratorPage> {
         ),
       );
       if (confirmed == true) {
-        final images = List.of(ref.read(imagesProvider.notifier).state);
+        final images = List.of(config.images);
         images.removeAt(index);
-        ref.read(imagesProvider.notifier).state = images;
+        notifier.update(config.copyWith(images: images));
+        notifier.save();
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final canDownload = ref.watch(canDownloadProvider);
-
+    final config = ref.watch(bannerConfigProvider);
+    final canDownload =
+        config != null &&
+        config.images.isNotEmpty &&
+        config.images.length <= 25;
     return Scaffold(
       body: Stack(
         children: [
@@ -184,14 +217,15 @@ class _BannerGeneratorPageState extends ConsumerState<BannerGeneratorPage> {
       top: 0,
       bottom: 0,
       child: Container(
-        width: AppConstants.sidePanelWidth,
-        margin: const EdgeInsets.all(AppConstants.extraLargeSpacing),
-        padding: const EdgeInsets.all(AppConstants.mediumSpacing),
-        decoration: AppTheme.sidePanelDecoration,
+        width: 340.0,
+        margin: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(16.0),
+        ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(
-            AppConstants.extraLargeBorderRadius,
-          ),
+          borderRadius: BorderRadius.circular(16.0),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: SingleChildScrollView(

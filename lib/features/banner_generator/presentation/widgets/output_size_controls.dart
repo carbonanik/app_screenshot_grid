@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/providers/providers.dart';
+import '../../data/providers/banner_config_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 
 class OutputSizeControls extends ConsumerWidget {
@@ -11,8 +11,11 @@ class OutputSizeControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final outputWidth = ref.watch(outputWidthProvider);
-    final outputHeight = ref.watch(outputHeightProvider);
+    final config = ref.watch(bannerConfigProvider);
+    final notifier = ref.read(bannerConfigProvider.notifier);
+    final outputWidth = config?.outputWidth ?? AppConstants.defaultOutputWidth;
+    final outputHeight =
+        config?.outputHeight ?? AppConstants.defaultOutputHeight;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,15 +37,16 @@ class OutputSizeControls extends ConsumerWidget {
               width: AppConstants.inputFieldWidth,
               child: Listener(
                 onPointerSignal: (event) {
-                  if (event is PointerScrollEvent) {
+                  if (event is PointerScrollEvent && config != null) {
                     final delta = event.scrollDelta.dy;
-                    final notifier = ref.read(outputWidthProvider.notifier);
+                    int newWidth = outputWidth;
                     if (delta < 0) {
-                      notifier.state += AppConstants.sizeIncrement;
-                    } else if (delta > 0 &&
-                        notifier.state > AppConstants.minSize) {
-                      notifier.state -= AppConstants.sizeIncrement;
+                      newWidth += AppConstants.sizeIncrement;
+                    } else if (delta > 0 && newWidth > AppConstants.minSize) {
+                      newWidth -= AppConstants.sizeIncrement;
                     }
+                    notifier.update(config.copyWith(outputWidth: newWidth));
+                    notifier.save();
                   }
                 },
                 child: TextField(
@@ -65,9 +69,18 @@ class OutputSizeControls extends ConsumerWidget {
                   controller: TextEditingController(
                     text: outputWidth.toString(),
                   ),
-                  onSubmitted: (v) =>
-                      ref.read(outputWidthProvider.notifier).state =
-                          int.tryParse(v) ?? AppConstants.defaultOutputWidth,
+                  onSubmitted: (v) {
+                    if (config != null) {
+                      notifier.update(
+                        config.copyWith(
+                          outputWidth:
+                              int.tryParse(v) ??
+                              AppConstants.defaultOutputWidth,
+                        ),
+                      );
+                      notifier.save();
+                    }
+                  },
                 ),
               ),
             ),
@@ -77,15 +90,16 @@ class OutputSizeControls extends ConsumerWidget {
               width: AppConstants.inputFieldWidth,
               child: Listener(
                 onPointerSignal: (event) {
-                  if (event is PointerScrollEvent) {
+                  if (event is PointerScrollEvent && config != null) {
                     final delta = event.scrollDelta.dy;
-                    final notifier = ref.read(outputHeightProvider.notifier);
+                    int newHeight = outputHeight;
                     if (delta < 0) {
-                      notifier.state += AppConstants.sizeIncrement;
-                    } else if (delta > 0 &&
-                        notifier.state > AppConstants.minSize) {
-                      notifier.state -= AppConstants.sizeIncrement;
+                      newHeight += AppConstants.sizeIncrement;
+                    } else if (delta > 0 && newHeight > AppConstants.minSize) {
+                      newHeight -= AppConstants.sizeIncrement;
                     }
+                    notifier.update(config.copyWith(outputHeight: newHeight));
+                    notifier.save();
                   }
                 },
                 child: TextField(
@@ -108,9 +122,18 @@ class OutputSizeControls extends ConsumerWidget {
                   controller: TextEditingController(
                     text: outputHeight.toString(),
                   ),
-                  onSubmitted: (v) =>
-                      ref.read(outputHeightProvider.notifier).state =
-                          int.tryParse(v) ?? AppConstants.defaultOutputHeight,
+                  onSubmitted: (v) {
+                    if (config != null) {
+                      notifier.update(
+                        config.copyWith(
+                          outputHeight:
+                              int.tryParse(v) ??
+                              AppConstants.defaultOutputHeight,
+                        ),
+                      );
+                      notifier.save();
+                    }
+                  },
                 ),
               ),
             ),

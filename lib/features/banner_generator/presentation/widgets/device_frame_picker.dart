@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/providers/providers.dart';
+import '../../data/providers/banner_config_provider.dart';
 import '../../data/providers/device_frame.dart';
 
 class DeviceFramePicker extends ConsumerWidget {
@@ -10,7 +10,9 @@ class DeviceFramePicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final frameType = ref.watch(deviceFrameProvider);
+    final config = ref.watch(bannerConfigProvider);
+    final notifier = ref.read(bannerConfigProvider.notifier);
+    final frameType = config?.deviceFrame ?? DeviceFrameType.iphone;
     return Row(
       children: [
         const Text(
@@ -30,8 +32,12 @@ class DeviceFramePicker extends ConsumerWidget {
               child: Text("Android"),
             ),
           ],
-          onChanged: (type) =>
-              ref.read(deviceFrameProvider.notifier).state = type!,
+          onChanged: (type) {
+            if (config != null && type != null) {
+              notifier.update(config.copyWith(deviceFrame: type));
+              notifier.save();
+            }
+          },
         ),
       ],
     );
